@@ -1,0 +1,72 @@
+* Lizmap docker demo
+  This is a simple demo on how to use Lizmap into with a docker
+  infrastructure.
+** Usage
+   Clone this repository with
+   #+begin_src sh
+     git clone git@github.com:opengisch/lizmap-docker-demo.git
+     cd lizmap-docker-demo
+   #+end_src
+
+   Run the docker containers
+   #+begin_src sh
+     docker-compose up -d
+   #+end_src
+   
+   This will start:
+   - a QGIS server
+   - a Lizmap
+   - a Nginx web server listening on http://localhost
+
+   The first time you have to login into the administration panel with
+   =admin:admin= and grant the permissions on the already configured
+   repository to all users.
+
+   A demo project is already present.
+** Database
+   This demo doesn't use a database. But you can add a postgis
+   container to the docker-compose file like this:
+   
+   #+begin_src
+     db:
+       image: kartoza/postgis:12.0
+       restart: unless-stopped
+       volumes:
+         # - ./postgres_data:/var/lib/postgresql
+         - ./data/db_dump:/tmp/db_dump
+       environment:
+         POSTGRES_USER: docker
+         POSTGRES_PASS: docker
+         ALLOW_IP_RANGE: 172.16.0.0/12 #allow only local docker net
+       #ports:
+       #  - 5432:5432  # open this so we can connect to the PG server from QGIS desktop
+       networks:
+         - net
+   #+end_src
+
+   To database will be listening on the hostname =db= (i.e. the name
+   of the service defined in the docker-compose.yml file). Using db
+   connections based on postgres services instead of direct connection
+   data will simpify the use of the same QGIS project on different
+   environments (i.e. desktop and server). A =.pg_service.conf= file
+   should be mounted in the QGIS server and the Lizmap containers.
+** Other useful command examples
+   To stop the docker containers
+   #+begin_src sh
+     docker-compose stop
+   #+end_src
+   
+   To delete the containers and remove all the volumes
+   #+begin_src sh
+     docker-compose down -v
+   #+end_src
+
+   Show the log of the containers (use =-f= to follow the log)
+   #+begin_src sh
+     docker-compose logs
+   #+end_src
+
+   Enter in a shell inside a container
+   #+begin_src sh
+     docker exec -ti lizmap-docker-demo_qgisserver_1 /bin/bash
+   #+end_src
