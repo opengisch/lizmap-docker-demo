@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  qgisserver:
+    image: openquake/qgis-server:3.10
+    restart: unless-stopped
+    environment:
+      QGIS_SERVER_PARALLEL_RENDERING: 'true'
+      QGIS_SERVER_MAX_THREADS: 4
+      QGIS_SERVER_LOG_LEVEL: 0
+    networks:
+      - net
+    volumes:
+      - ./projects:/io/data
+      - ./conf/qgisserver/nginx.conf:/etc/nginx/nginx.conf
+
+  lizmap:
+    image: 3liz/lizmap-web-client:3.3
+    restart: unless-stopped
+    environment:
+      LIZMAP_CACHEREDISDB: '1'
+      LIZMAP_CACHEREDISHOST: redis
+      LIZMAP_CACHESTORAGETYPE: redis
+      LIZMAP_HOME: /srv/lizmap
+      LIZMAP_USER: 1000
+      LIZMAP_WMSSERVERURL: qgisserver/cgi-bin/qgis_mapserv.fcgi
+    volumes:
+      - ./projects:/io/data
+      - lizmap_theme_config:/www/lizmap/var/lizmap-theme-config
+      - lizmap_config:/www/lizmap/var/config
+      - lizmap_db:/www/lizmap/var/db
+      - lizmap_www:/www/lizmap/www
+      - lizmap_log:/www/lizmap/var/log
+      - ./conf/lizmap/lizmapConfig.ini.php:/www/lizmap/var/config/lizmapConfig.ini.php
+    networks:
+      - net
+
+  web:
+    image: nginx:1.16.1
+    restart: unless-stopped
+    volumes:
+      - ./conf/lizmap/nginx.conf:/etc/nginx/nginx.conf
+      - lizmap_web_log:/var/log/nginx
+      - lizmap_www:/srv/lizmap/www
+      - lizmap_db:/srv/lizmap/var/db
+      - lizmap_config:/srv/lizmap/var/config
+      - lizmap_theme_config:/srv/lizmap/var/lizmap-theme-config
+      - ./conf/lizmap/lizmapConfig.ini.php:/srv/lizmap/var/config/lizmapConfig.ini.php
+    ports:
+      - 80:80
+    depends_on:
+      - lizmap
+    networks:
+      - net
+
+networks:
+  net:
+
+volumes:
+  postgres:
+  lizmap_tmp:
+  lizmap_var:
+  lizmap_config:
+  lizmap_theme_config:
+  lizmap_db:
+  lizmap_log:
+  lizmap_www:
+  lizmap_web_log:
